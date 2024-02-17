@@ -408,9 +408,9 @@ wasnt0:
                         push af 
                         
                         ld hl,enablecatcher : call streamuart		; this gets nextpi ready for to recieve  
-                        ld hl,textbuff : call streamuart			; and the output file 
+                        ld hl,textbuff : call escstreamuart			; and the output file, but escaped
                         
-                        ld a,'"' : call senduart					; send closing quote 
+                        ld a,"'" : call senduart					; send closing quote 
                         ld a,13 : call senduart						; send a LF 
 ;
                         pop af
@@ -643,6 +643,44 @@ streamuart
 1:
                         pop     hl 
                         ret 
+escstreamuart	        
+                        ld      a,(hl)
+                        inc     hl
+                        or      a
+                        ret     z
+                        
+                        cp      "'"							; We have to escape single quotes
+                        jp      z, .escsinglequote
+                        
+                        ld      bc,$133b 						; write to uart 
+                        ld      d,a 
+                        push    hl 
+                        ld      hl, 50000
+.koutb:		        ; if busy do a little loop 
+                        dec     hl 
+                        ld      a, h 
+                        or      l 
+                        jp      z, 1F
+
+                        in      a,(c)
+                        bit     4, a 
+                        jr      z,.koutb
+                        ld      a,d
+                        out     (c),a
+ 
+                        pop     hl 
+                        jr      escstreamuart
+                        
+.escsinglequote
+                        push    hl							; Save old string pos
+                        ld      hl, escapedquote
+                        call    streamuart						; leverage the old unescaping UART code to send special chars
+                        pop     hl
+                        jr      escstreamuart						; Pretend the char went as usual, and resume the sender loop
+1:
+                        pop     hl 
+                        ret 
+
 
 print_fname	;ld a,(quietmode) : bit 0,a : ret nz 
 .subprint	ld a,(hl):inc hl:cp 0:ret z:rst 16:jr .subprint
@@ -939,7 +977,8 @@ trylowboaud		db 		22, 0, 0,"Trying 115,200...",255
 tryhighbaud		db 		22, 0, 0,"Trying 2,000,000...",255
 trysuccess		db		22, 0, 0,"COMMS@ "
                                 db		22, 0, 17,"Connected OK!",255
-enablecatcher 	db 		'nextpi-file_stream > "/ram/',0
+enablecatcher		db 		"nextpi-file_stream > '/ram/",0
+escapedquote		db		"'\\''",0
 ;;enablecatcher 	db 		"cat > /mnt/dongle/",0
 sucess	 		db 		13,13,"success!",13,255
 failedsave 	 	db 		13,13,"failed save :(",13,255
