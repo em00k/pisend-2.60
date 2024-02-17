@@ -2,7 +2,7 @@
         DEVICE ZXSPECTRUMNEXT
         CSPECTMAP "pisend.map"
 
-        DEFINE VERSION "2.62"
+        DEFINE VERSION "2.63"
 
 ; pisend for zx spectrum next 
 ; emook2020 / david saphier 2020
